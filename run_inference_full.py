@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-🚀 INFERENCE SCRIPT: 2-MODEL ENSEMBLE ON ALL DATA
+INFERENCE SCRIPT: 2-MODEL ENSEMBLE ON ALL DATA
 --------------------------------------------------
 Evaluates the Inception-SE + sEMG-Net ensemble on ALL data files.
 
@@ -174,21 +174,19 @@ def window_data(data_list, labels_list, prep, window_ms, stride_ms):
 # ==================== MAIN ====================
 
 def main():
-    print("="*70)
-    print("🚀 TESTING 2-MODEL ENSEMBLE ON ALL DATA")
-    print("="*70)
+    print("TESTING 2-MODEL ENSEMBLE ON ALL DATA")
 
     # 1. SETUP DATA - USE ALL DATA (Session1 + Session2 + Session3)
-    print("\n📦 Loading Dataset...")
+    print("\nLoading Dataset...")
     all_files = get_session_files(DATA_DIR, ['Session1', 'Session2', 'Session3'])
 
-    print(f"📄 Total files: {len(all_files)} (All Sessions)")
+    print(f"Total files: {len(all_files)} (All Sessions)")
 
     # 2. LOAD & PREPROCESS
-    print("\n⏳ Loading raw data...")
+    print("\nLoading raw data...")
     all_data_raw, all_labels_raw = load_files_data(all_files)
 
-    print("🔧 Preprocessing...")
+    print("Preprocessing...")
     prep = SignalPreprocessor(fs=FS)
     prep.fit(all_data_raw)  # Fit on all data
 
@@ -200,15 +198,13 @@ def main():
     n_classes = len(le.classes_)
     input_shape = X_all.shape[1:]
 
-    print(f"✅ Data Ready:")
+    print(f"Data Ready:")
     print(f"   Total windows: {X_all.shape[0]}")
     print(f"   Window shape: {X_all.shape[1:]}")
     print(f"   Classes: {le.classes_}")
 
     # 4. LOAD MODELS
-    print("\n" + "-"*70)
-    print("🔮 RUNNING ENSEMBLE INFERENCE ON ALL DATA")
-    print("-"*70)
+    print("\nRUNNING ENSEMBLE INFERENCE ON ALL DATA")
 
     models_config = [
         ("inception_se", make_inception_se_tcn),
@@ -221,10 +217,10 @@ def main():
     for name, builder in models_config:
         path = f'{ARTIFACTS_DIR}/best_{name}.keras'
         if not os.path.exists(path):
-            print(f"❌ Error: Could not find {path}")
+            print(f"Error: Could not find {path}")
             continue
 
-        print(f"\n⚡ Loading {name}...")
+        print(f"\nLoading {name}...")
         model = builder(input_shape, n_classes)
         model.load_weights(path)
 
@@ -235,15 +231,13 @@ def main():
         # Individual model accuracy
         acc = accuracy_score(y_all, probs.argmax(axis=1))
         f1 = f1_score(y_all, probs.argmax(axis=1), average='macro')
-        print(f"   ✓ {name} - Accuracy: {acc:.4f}, F1: {f1:.4f}")
+        print(f"   {name} - Accuracy: {acc:.4f}, F1: {f1:.4f}")
 
         tf.keras.backend.clear_session()
 
     # 5. ENSEMBLE PREDICTION (SOFT VOTING)
     if len(predictions) == 2:
-        print("\n" + "-"*70)
-        print("🎯 ENSEMBLE RESULTS (Simple Averaging)")
-        print("-"*70)
+        print("\nENSEMBLE RESULTS (Simple Averaging)")
         
         ensemble_probs = (predictions[0] + predictions[1]) / 2.0
         final_preds = ensemble_probs.argmax(axis=1)
@@ -252,23 +246,19 @@ def main():
         acc = accuracy_score(y_all, final_preds)
         f1 = f1_score(y_all, final_preds, average='macro')
 
-        print(f"\n🏆 FINAL ENSEMBLE ACCURACY: {acc*100:.2f}%")
-        print(f"🏆 FINAL ENSEMBLE F1 SCORE: {f1:.4f}")
+        print(f"\nFINAL ENSEMBLE ACCURACY: {acc*100:.2f}%")
+        print(f"FINAL ENSEMBLE F1 SCORE: {f1:.4f}")
         
-        print("\n" + "="*70)
-        print("📊 DETAILED CLASSIFICATION REPORT")
-        print("="*70)
+        print("\nDETAILED CLASSIFICATION REPORT")
         print(classification_report(y_all, final_preds, 
-                                   target_names=[f"Gesture {c}" for c in le.classes_],
-                                   digits=4))
+                                    target_names=[f"Gesture {c}" for c in le.classes_],
+                                    digits=4))
 
         # Confusion Matrix
         cm = confusion_matrix(y_all, final_preds)
         
         # Calculate per-class accuracy
-        print("\n" + "="*70)
-        print("📈 PER-CLASS ACCURACY")
-        print("="*70)
+        print("\nPER-CLASS ACCURACY")
         for i, gesture in enumerate(le.classes_):
             class_acc = cm[i, i] / cm[i].sum() if cm[i].sum() > 0 else 0
             print(f"Gesture {gesture}: {class_acc*100:.2f}% ({cm[i, i]}/{cm[i].sum()} correct)")
@@ -285,32 +275,29 @@ def main():
         
         output_path = f'{ARTIFACTS_DIR}/ensemble_all_data_matrix.png'
         plt.savefig(output_path, dpi=150)
-        print(f"\n📊 Confusion matrix saved to: {output_path}")
+        print(f"\nConfusion matrix saved to: {output_path}")
         
         # Save results to text file
         results_path = f'{ARTIFACTS_DIR}/ensemble_all_data_results.txt'
         with open(results_path, 'w') as f:
-            f.write("="*70 + "\n")
             f.write("2-MODEL ENSEMBLE RESULTS - ALL DATA (Session1+2+3)\n")
-            f.write("="*70 + "\n\n")
+            f.write("="*70 + "\n\n") # Kept specifically in file output for readability
             f.write(f"Total Windows: {len(y_all)}\n")
             f.write(f"Accuracy: {acc*100:.2f}%\n")
             f.write(f"F1 Score: {f1:.4f}\n\n")
             f.write("Classification Report:\n")
             f.write(classification_report(y_all, final_preds, 
-                                         target_names=[f"Gesture {c}" for c in le.classes_],
-                                         digits=4))
+                                          target_names=[f"Gesture {c}" for c in le.classes_],
+                                          digits=4))
             f.write("\n\nConfusion Matrix:\n")
             f.write(str(cm))
         
-        print(f"📄 Results saved to: {results_path}")
+        print(f"Results saved to: {results_path}")
         
     else:
-        print("❌ Error: Not enough models loaded for ensemble.")
+        print("Error: Not enough models loaded for ensemble.")
 
-    print("\n" + "="*70)
-    print("✅ EVALUATION COMPLETE")
-    print("="*70)
+    print("\nEVALUATION COMPLETE")
 
 if __name__ == "__main__":
     main()
